@@ -1,26 +1,13 @@
 {% extends 'base.html' %}
 {% block title %}Типы коммутаторов{% endblock %}
 {% block content %}
-    <!-- Подменю -->
-    <div class="bg-gray-200 p-2 mb-4">
-        <div class="container mx-auto flex space-x-4">
-            <a href="{% url 'switches' %}" class="px-3 py-2 rounded {% if request.path == '/switches/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">Коммутаторы</a>
-            <a href="{% url 'switch_types' %}" class="px-3 py-2 rounded {% if request.path == '/switch_types/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">Типы коммутаторов</a>
-        </div>
-    </div>
+    <h1 class="text-2xl font-bold mb-4">Типы коммутаторов</h1>
 
-    <h1 class="text-2xl font-bold mb-4">Список типов коммутаторов</h1>
-
-    <!-- Кнопки и поиск -->
-    <div class="flex justify-between items-center mb-4">
-        <div>
-            <button onclick="openPopup('{% url 'switch_type_create' %}', 'Добавить тип коммутатора', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить тип коммутатора</button>
-        </div>
-        <form method="get" class="flex items-center">
-            <input type="text" name="q" value="{{ query }}" placeholder="Поиск по названию, описанию..." class="border p-2 w-96">
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-2">Найти</button>
-        </form>
-    </div>
+    <!-- Форма поиска -->
+    <form method="get" class="mb-4">
+        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по названию, описанию, производителю, модели" class="border p-2 w-1/2">
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Найти</button>
+    </form>
 
     <!-- Пагинация и выбор количества записей -->
     <div class="flex justify-between items-center mb-4">
@@ -59,7 +46,13 @@
         <thead>
             <tr class="bg-gray-200">
                 <th class="border p-2">Название</th>
-                <th class="border p-2">Описание</th>
+                <th class="border p-2">Производитель</th>
+                <th class="border p-2">Модель</th>
+                <th class="border p-2">Порты</th>
+                <th class="border p-2">Управляемый</th>
+                <th class="border p-2">Скорость</th>
+                <th class="border p-2">PoE</th>
+                <th class="border p-2">Создано</th>
                 <th class="border p-2">Действия</th>
             </tr>
         </thead>
@@ -67,7 +60,13 @@
             {% for switch_type in switch_types %}
                 <tr class="cursor-pointer hover:bg-gray-100" onclick="toggleDetails('details-{{ switch_type.id }}')">
                     <td class="border p-2">{{ switch_type.name }}</td>
-                    <td class="border p-2">{{ switch_type.description|default:"—" }}</td>
+                    <td class="border p-2">{{ switch_type.manufacturer|default:"—" }}</td>
+                    <td class="border p-2">{{ switch_type.model|default:"—" }}</td>
+                    <td class="border p-2">{{ switch_type.port_count|default:"—" }}</td>
+                    <td class="border p-2">{{ switch_type.managed|yesno:"Да,Нет" }}</td>
+                    <td class="border p-2">{{ switch_type.get_max_speed_display|default:"—" }}</td>
+                    <td class="border p-2">{{ switch_type.power_over_ethernet|yesno:"Да,Нет" }}</td>
+                    <td class="border p-2">{{ switch_type.created_at|date:"Y-m-d H:i" }}</td>
                     <td class="border p-2">
                         <div class="flex space-x-2">
                             <button onclick="openPopup('{% url 'switch_type_edit' switch_type.id %}', 'Редактировать тип коммутатора', 600, 600)" class="text-blue-500 hover:underline">Редактировать</button>
@@ -77,16 +76,18 @@
                 </tr>
                 <!-- Выпадающий блок -->
                 <tr id="details-{{ switch_type.id }}" class="hidden">
-                    <td colspan="3" class="border p-4 bg-gray-50">
+                    <td colspan="9" class="border p-4 bg-gray-50">
+                        <p><strong>Описание:</strong> {{ switch_type.description|default:"Нет описания" }}</p>
+                        <p><strong>Обновлено:</strong> {{ switch_type.updated_at|date:"Y-m-d H:i" }}</p>
                         <div class="flex space-x-4">
-                            <button onclick="openPopup('{% url 'switch_type_edit' switch_type.id %}', 'Редактировать тип коммутатора', 600, 600)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать тип коммутатора</button>
-                            <button onclick="openPopup('{% url 'switch_type_delete' switch_type.id %}', 'Удалить тип коммутатора', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить тип коммутатора</button>
+                            <button onclick="openPopup('{% url 'switch_type_edit' switch_type.id %}', 'Редактировать тип коммутатора', 600, 600)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать</button>
+                            <button onclick="openPopup('{% url 'switch_type_delete' switch_type.id %}', 'Удалить тип коммутатора', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить</button>
                         </div>
                     </td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="3" class="border p-2 text-center">Нет типов коммутаторов</td>
+                    <td colspan="9" class="border p-2 text-center">Нет типов коммутаторов</td>
                 </tr>
             {% endfor %}
         </tbody>

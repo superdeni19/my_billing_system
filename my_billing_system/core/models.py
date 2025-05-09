@@ -72,6 +72,27 @@ class SwitchType(models.Model):
     def __str__(self):
         return self.name
 
+class SwitchType(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    manufacturer = models.CharField(max_length=100, blank=True)
+    model = models.CharField(max_length=100, blank=True)
+    port_count = models.PositiveIntegerField(null=True, blank=True)
+    max_speed = models.CharField(max_length=20, blank=True, choices=[
+        ('100Mbps', '100 Mbps'),
+        ('1Gbps', '1 Gbps'),
+        ('10Gbps', '10 Gbps'),
+        ('25Gbps', '25 Gbps'),
+        ('100Gbps', '100 Gbps'),
+    ])
+    power_over_ethernet = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.manufacturer} {self.model} ({self.name})"
+
 class Switch(models.Model):
     name = models.CharField(max_length=100, unique=True)
     ip_address = models.GenericIPAddressField(unique=True, blank=True, null=True)
@@ -128,10 +149,7 @@ class Onu(models.Model):
     def __str__(self):
         return f"{self.mac} ({self.subscriber})"
 
-class SwitchType(models.Model):
-    name = models.CharField(max_length=100)
-    lib = models.CharField(max_length=250)
-    description = models.TextField(blank=True)
+
 
     def __str__(self):
         return self.name

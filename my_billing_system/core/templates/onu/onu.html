@@ -1,25 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}ONU{% endblock %}
-{% block submenu %}
-    <div class="bg-gray-200 p-4 mb-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex space-x-4">
-                <a href="{% url 'subscribers' %}" class="px-3 py-2 rounded {% if request.path == '/subscribers/' %}bg-blue-500 text-white{% else %}bg-white hover:bg-gray-300{% endif %}">Абоненты</a>
-                <a href="{% url 'devices' %}" class="px-3 py-2 rounded {% if request.path == '/devices/' %}bg-blue-500 text-white{% else %}bg-white hover:bg-gray-300{% endif %}">Устройства</a>
-                <a href="{% url 'onu' %}" class="px-3 py-2 rounded {% if request.path == '/onu/' %}bg-blue-500 text-white{% else %}bg-white hover:bg-gray-300{% endif %}">ONU</a>
-            </div>
-            <div>
-                <button onclick="openPopup('{% url 'onu_create' %}', 'Добавить ONU', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить ONU</button>
-            </div>
-        </div>
-    </div>
-{% endblock %}
 {% block content %}
     <h1 class="text-2xl font-bold mb-4">Список ONU</h1>
 
     <!-- Форма поиска -->
     <form method="get" class="mb-4">
-        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по серийному номеру, адресу абонента, коммутатору" class="border p-2 w-1/2">
+        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по MAC, IP, улице, дому, квартире, местоположению" class="border p-2 w-1/2">
         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Найти</button>
     </form>
 
@@ -59,24 +45,22 @@
     <table class="w-full border-collapse bg-white shadow-md">
         <thead>
             <tr class="bg-gray-200">
-                <th class="border p-2">Серийный номер</th>
+                <th class="border p-2">MAC-адрес</th>
+                <th class="border p-2">IP-адрес</th>
                 <th class="border p-2">Абонент</th>
-                <th class="border p-2">Адрес</th>
-                <th class="border p-2">Коммутатор</th>
-                <th class="border p-2">Порт</th>
+                <th class="border p-2">Местоположение</th>
+                <th class="border p-2">Описание</th>
                 <th class="border p-2">Действия</th>
             </tr>
         </thead>
         <tbody>
             {% for onu in onu_list %}
                 <tr class="cursor-pointer hover:bg-gray-100" onclick="toggleDetails('details-{{ onu.id }}')">
-                    <td class="border p-2">{{ onu.serial_number }}</td>
+                    <td class="border p-2">{{ onu.mac }}</td>
+                    <td class="border p-2">{{ onu.ip }}</td>
                     <td class="border p-2">{{ onu.subscriber }}</td>
-                    <td class="border p-2">
-                        {{ onu.subscriber.street }} {{ onu.subscriber.house }}{% if onu.subscriber.apartment %}, кв. {{ onu.subscriber.apartment }}{% endif %}
-                    </td>
-                    <td class="border p-2">{{ onu.switch|default:"—" }}</td>
-                    <td class="border p-2">{{ onu.port|default:"—" }}</td>
+                    <td class="border p-2">{{ onu.location|default:"—" }}</td>
+                    <td class="border p-2">{{ onu.description|default:"—" }}</td>
                     <td class="border p-2">
                         <div class="flex space-x-2">
                             <button onclick="openPopup('{% url 'onu_edit' onu.id %}', 'Редактировать ONU', 600, 600)" class="text-blue-500 hover:underline">Редактировать</button>

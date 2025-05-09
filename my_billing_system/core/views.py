@@ -7,8 +7,8 @@ from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
-from .forms import SubscriberForm, DeviceForm, TariffForm, ServiceForm, PaymentForm
-from .models import Subscriber, Device, Tariff, Service, Payment, Switch, SwitchType
+from .forms import SubscriberForm, DeviceForm, TariffForm, ServiceForm, PaymentForm, OnuForm, SwitchTypeForm
+from .models import Subscriber, Device, Tariff, Service, Payment, Switch, SwitchType, Onu
 
 
 def login_view(request):
@@ -209,7 +209,75 @@ def device_delete(request, device_id):
 def onu(request):
     if not request.user.is_authorized():
         return redirect('login')
-    return render(request, 'onu/onu.html', {})
+    query = request.GET.get('q', '')
+    per_page = request.GET.get('per_page', '10')
+
+    onu_list = Onu.objects.select_related('subscriber').all()
+    if query:
+        onu_list = onu_list.filter(
+            Q(mac__icontains=query) |
+            Q(ip__icontains=query) |
+            Q(subscriber__street__icontains=query) |
+            Q(subscriber__house__icontains=query) |
+            Q(subscriber__apartment__icontains=query) |
+            Q(location__icontains=query)
+        )
+
+    if per_page == 'all':
+        paginated_onu = onu_list
+    else:
+        from django.core.paginator import Paginator
+        paginator = Paginator(onu_list, int(per_page))
+        page_number = request.GET.get('page')
+        paginated_onu = paginator.get_page(page_number)
+
+    onu_form = OnuForm()
+    return render(request, 'onu.html', {
+        'onu_list': paginated_onu,
+        'query': query,
+        'per_page': per_page,
+        'onu_form': onu_form,
+    })
+
+@login_required
+def onu_create(request):
+    if not request.user.is_authorized():
+        return redirect('login')
+    if request.method == 'POST':
+        form = OnuForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('onu')
+    else:
+        initial = {}
+        if request.GET.get('subscriber'):
+            initial['subscriber'] = request.GET.get('subscriber')
+        form = OnuForm(initial=initial)
+    return render(request, 'onu/onu_form.html', {'form': form})
+
+@login_required
+def onu_edit(request, onu_id):
+    if not request.user.is_authorized():
+        return redirect('login')
+    onu = get_object_or_404(Onu, id=onu_id)
+    if request.method == 'POST':
+        form = OnuForm(request.POST, instance=onu)
+        if form.is_valid():
+            form.save()
+            return redirect('onu')
+    else:
+        form = OnuForm(instance=onu)
+    return render(request, 'onu/onu_form.html', {'form': form, 'onu': onu})
+
+@login_required
+def onu_delete(request, onu_id):
+    if not request.user.is_authorized():
+        return redirect('login')
+    onu = get_object_or_404(Onu, id=onu_id)
+    if request.method == 'POST':
+        onu.delete()
+        return redirect('onu')
+    return render(request, 'onu/onu_confirm_delete.html', {'onu': onu})
 
 
 @login_required
@@ -296,7 +364,9 @@ def switch_types(request):
     if query:
         switch_types = switch_types.filter(
             Q(name__icontains=query) |
-            Q(description__icontains=query)
+            Q(description__icontains=query) |
+            Q(manufacturer__icontains=query) |
+            Q(model__icontains=query)
         )
 
     if per_page == 'all':
@@ -307,7 +377,7 @@ def switch_types(request):
         page_number = request.GET.get('page')
         paginated_switch_types = paginator.get_page(page_number)
 
-    return render(request, 'switch_types/switch_types.html', {
+    return render(request, 'switch_types.html', {
         'switch_types': paginated_switch_types,
         'query': query,
         'per_page': per_page,
@@ -321,7 +391,7 @@ def switch_type_create(request):
         form = SwitchTypeForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('switch_types')
+            return redirect('switch_types/')
     else:
         form = SwitchTypeForm()
     return render(request, 'switch_types/switch_type_form.html', {'form': form})

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Subscriber, Device, Tariff, Service, Payment, Switch
+from .models import Subscriber, Device, Tariff, Service, Payment, Switch, SwitchType
 
 
 class SubscriberForm(forms.ModelForm):
@@ -34,6 +34,17 @@ class DeviceForm(forms.ModelForm):
             'mac_address': forms.TextInput(attrs={'class': 'border p-2 w-full', 'placeholder': '00:1A:2B:3C:4D:5E'}),
             'switch': forms.Select(attrs={'class': 'border p-2 w-full'}),
             'port': forms.NumberInput(attrs={'class': 'border p-2 w-full'}),
+        }
+
+class OnuForm(forms.ModelForm):
+    class Meta:
+        fields = ['mac', 'description', 'ip', 'subscriber', 'location']
+        widgets = {
+            'mac': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
+            'description': forms.Textarea(attrs={'class': 'border p-2 w-full', 'rows': 4}),
+            'ip': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
+            'subscriber': forms.Select(attrs={'class': 'border p-2 w-full'}),
+            'location': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
         }
 
 class TariffForm(forms.ModelForm):
@@ -76,4 +87,19 @@ class SwitchForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
             'ip_address': forms.TextInput(attrs={'class': 'border p-2 w-full', 'placeholder': '10.0.0.0'}),
             'location': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
+        }
+
+class SwitchTypeForm(forms.ModelForm):
+    class Meta:
+        model = SwitchType
+        fields = ['name', 'description', 'manufacturer', 'model', 'port_count', 'managed', 'max_speed', 'power_over_ethernet']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
+            'description': forms.Textarea(attrs={'class': 'border p-2 w-full', 'rows': 4}),
+            'manufacturer': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
+            'model': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
+            'port_count': forms.NumberInput(attrs={'class': 'border p-2 w-full'}),
+            'managed': forms.CheckboxInput(attrs={'class': 'border p-2'}),
+            'max_speed': forms.Select(attrs={'class': 'border p-2 w-full'}),
+            'power_over_ethernet': forms.CheckboxInput(attrs={'class': 'border p-2'}),
         }
