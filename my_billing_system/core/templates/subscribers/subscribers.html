@@ -1,21 +1,27 @@
 {% extends 'base.html' %}
 {% block title %}Абоненты{% endblock %}
 {% block content %}
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold">Список абонентов</h1>
-        <div class="flex space-x-2">
-            <button onclick="openPopup('{% url 'subscriber_create' %}', 'Добавить абонента', 600, 800)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Добавить абонента</button>
-            <button onclick="openPopup('{% url 'device_create' %}', 'Добавить устройство', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
-            <button onclick="openPopup('{% url 'payment_create' %}', 'Добавить платёж', 600, 600)" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Добавить платёж</button>
-            <button onclick="openPopup('{% url 'service_create' %}', 'Добавить услугу', 600, 600)" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Добавить услугу</button>
+    <!-- Подменю -->
+    <div class="bg-gray-200 p-2 mb-4">
+        <div class="container mx-auto flex space-x-4">
+            <a href="{% url 'subscribers' %}" class="px-3 py-2 rounded {% if request.path == '/subscribers/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">Абоненты</a>
+            <a href="{% url 'devices' %}" class="px-3 py-2 rounded {% if request.path == '/devices/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">Устройства</a>
+            <a href="{% url 'onu' %}" class="px-3 py-2 rounded {% if request.path == '/onu/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">ONU</a>
         </div>
     </div>
 
-    <!-- Форма поиска -->
-    <form method="get" class="mb-4">
-        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по имени, фамилии, отчеству, улице, дому, квартире" class="border p-2 w-1/2">
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Найти</button>
-    </form>
+    <h1 class="text-2xl font-bold mb-4">Список абонентов</h1>
+
+    <!-- Кнопки и поиск -->
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <button onclick="openPopup('{% url 'subscriber_create' %}', 'Добавить абонента', 600, 800)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить абонента</button>
+        </div>
+        <form method="get" class="flex items-center">
+            <input type="text" name="q" value="{{ query }}" placeholder="Поиск по имени, фамилии, улице, дому..." class="border p-2 w-96">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-2">Найти</button>
+        </form>
+    </div>
 
     <!-- Пагинация и выбор количества записей -->
     <div class="flex justify-between items-center mb-4">
@@ -61,11 +67,11 @@
                 <th class="border p-2">Квартира</th>
                 <th class="border p-2">Телефон</th>
                 <th class="border p-2">Паспорт</th>
-                <th class="border p-2">Тариф</th>
                 <th class="border p-2">Тип</th>
                 <th class="border p-2">ИНН</th>
                 <th class="border p-2">Баланс</th>
                 <th class="border p-2">Статус</th>
+                <th class="border p-2">Услуги</th>
                 <th class="border p-2">Действия</th>
             </tr>
         </thead>
@@ -80,11 +86,19 @@
                     <td class="border p-2">{{ subscriber.apartment|default:"—" }}</td>
                     <td class="border p-2">{{ subscriber.phone }}</td>
                     <td class="border p-2">{{ subscriber.passport|default:"—" }}</td>
-                    <td class="border p-2">{{ subscriber.tariff|default:"—" }}</td>
                     <td class="border p-2">{{ subscriber.get_type_display|default:"—" }}</td>
                     <td class="border p-2">{{ subscriber.inn|default:"—" }}</td>
                     <td class="border p-2">{{ subscriber.balance }}</td>
                     <td class="border p-2">{{ subscriber.is_active|yesno:"Активен,Неактивен" }}</td>
+                    <td class="border p-2">
+                        {% for service in subscriber.services.all %}
+                            {% if service.is_active %}
+                                {{ service.tariff.name }} (до {{ service.date_finish|date:"d.m.Y" }})<br>
+                            {% endif %}
+                        {% empty %}
+                            Нет активных услуг
+                        {% endfor %}
+                    </td>
                     <td class="border p-2">
                         <div class="flex space-x-2">
                             <button onclick="openPopup('{% url 'subscriber_edit' subscriber.id %}', 'Редактировать абонента', 600, 800)" class="text-blue-500 hover:underline">Редактировать</button>
@@ -98,98 +112,18 @@
                 <!-- Выпадающий блок -->
                 <tr id="details-{{ subscriber.id }}" class="hidden">
                     <td colspan="14" class="border p-4 bg-gray-50">
-                        <div class="space-y-4">
-                            <!-- Кнопки управления -->
-                            <div class="flex space-x-4 mb-4">
-                                <button onclick="openPopup('{% url 'subscriber_edit' subscriber.id %}', 'Редактировать абонента', 600, 800)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать абонента</button>
-                                <button onclick="openPopup('{% url 'device_create' %}?subscriber={{ subscriber.id }}', 'Добавить устройство', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
-                                <button onclick="openPopup('{% url 'payment_create' %}?subscriber={{ subscriber.id }}', 'Добавить платёж', 600, 600)" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Добавить платёж</button>
-                                <button onclick="openPopup('{% url 'service_create' %}?subscriber={{ subscriber.id }}', 'Добавить услугу', 600, 600)" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Добавить услугу</button>
-                                <button onclick="openPopup('{% url 'subscriber_delete' subscriber.id %}', 'Удалить абонента', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить</button>
-                            </div>
-
-                            <!-- Список устройств -->
-                            <div>
-                                <h3 class="text-lg font-semibold mb-2">Устройства</h3>
-                                {% for device_form in device_forms.subscriber.id %}
-                                    <form method="post" action="{% url 'device_edit' device_form.instance.id %}" class="space-y-2 mb-4">
-                                        {% csrf_token %}
-                                        {{ device_form.as_p }}
-                                        <div class="flex space-x-2">
-                                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить устройство</button>
-                                            <button type="button" onclick="openPopup('{% url 'device_delete' device_form.instance.id %}', 'Удалить устройство', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
-                                        </div>
-                                    </form>
-                                {% empty %}
-                                    <p>Нет устройств.</p>
-                                {% endfor %}
-                                <!-- Добавление устройства -->
-                                <form method="post" action="{% url 'device_create' %}" class="space-y-2">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="subscriber" value="{{ subscriber.id }}">
-                                    {{ new_device_form.as_p }}
-                                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
-                                </form>
-                            </div>
-
-                            <!-- Список услуг -->
-                            <div>
-                                <h3 class="text-lg font-semibold mb-2">Услуги</h3>
-                                {% for service_form in service_forms.subscriber.id %}
-                                    <form method="post" action="{% url 'service_edit' service_form.instance.id %}" class="space-y-2 mb-4">
-                                        {% csrf_token %}
-                                        {{ service_form.as_p }}
-                                        <div class="flex space-x-2">
-                                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить услугу</button>
-                                            <button type="button" onclick="openPopup('{% url 'service_delete' service_form.instance.id %}', 'Удалить услугу', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
-                                        </div>
-                                    </form>
-                                {% empty %}
-                                    <p>Нет услуг.</p>
-                                {% endfor %}
-                                <!-- Добавление услуги -->
-                                <form method="post" action="{% url 'service_create' %}" class="space-y-2">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="subscriber" value="{{ subscriber.id }}">
-                                    {{ new_service_form.as_p }}
-                                    <button type="submit" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Добавить услугу</button>
-                                </form>
-                            </div>
-
-                            <!-- Список платежей -->
-                            <div>
-                                <h3 class="text-lg font-semibold mb-2">Платежи</h3>
-                                {% for payment_form in payment_forms.subscriber.id %}
-                                    <form method="post" action="{% url 'payment_edit' payment_form.instance.id %}" class="space-y-2 mb-4">
-                                        {% csrf_token %}
-                                        {{ payment_form.as_p }}
-                                        <div class="flex space-x-2">
-                                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить платёж</button>
-                                            <button type="button" onclick="openPopup('{% url 'payment_delete' payment_form.instance.id %}', 'Удалить платёж', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
-                                        </div>
-                                    </form>
-                                {% empty %}
-                                    <p>Нет платежей.</p>
-                                {% endfor %}
-                                <!-- Добавление платежа -->
-                                <form method="post" action="{% url 'payment_create' %}" class="space-y-2">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="subscriber" value="{{ subscriber.id }}">
-                                    {{ new_payment_form.as_p }}
-                                    <button type="submit" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Добавить платёж</button>
-                                </form>
-                            </div>
-
-                            <!-- Редактирование тарифа -->
-                            <div>
-                                <h3 class="text-lg font-semibold mb-2">Редактировать тариф</h3>
-                                <form method="post" action="{% url 'subscriber_edit' subscriber.id %}" class="space-y-2">
-                                    {% csrf_token %}
-                                    <label class="block text-sm font-medium">Тариф</label>
-                                    {{ subscriber_forms.subscriber.id.tariff }}
-                                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить тариф</button>
-                                </form>
-                            </div>
+                        <div class="flex space-x-4">
+                            <button onclick="openPopup('{% url 'subscriber_edit' subscriber.id %}', 'Редактировать абонента', 600, 800)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать абонента</button>
+                            <button onclick="openPopup('{% url 'device_create' %}?subscriber={{ subscriber.id }}', 'Добавить устройство', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
+                            <button onclick="openPopup('{% url 'payment_create' %}?subscriber={{ subscriber.id }}', 'Добавить платёж', 600, 600)" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Добавить платёж</button>
+                            <button onclick="openPopup('{% url 'service_create' %}?subscriber={{ subscriber.id }}', 'Добавить услугу', 600, 600)" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Добавить услугу</button>
+                            <button onclick="openPopup('{% url 'subscriber_delete' subscriber.id %}', 'Удалить абонента', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить абонента</button>
+                            <form method="post" action="{% url 'subscriber_toggle_status' subscriber.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                                    {% if subscriber.is_active %}Деактивировать{% else %}Активировать{% endif %}
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>
@@ -213,7 +147,6 @@
             window.open(url, title, `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
         }
 
-        // Обработка условной доступности поля ИНН
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('select[id*="id_type"]').forEach(typeSelect => {
                 const form = typeSelect.closest('form');

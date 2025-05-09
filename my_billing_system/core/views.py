@@ -1,4 +1,6 @@
 from datetime import timezone, timedelta
+from ipaddress import ip_address
+
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponseForbidden
@@ -6,7 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import SubscriberForm, DeviceForm, TariffForm, ServiceForm, PaymentForm
-from .models import Subscriber, Device, Tariff, Service, Payment, Switch
+from .models import Subscriber, Device, Tariff, Service, Payment, Switch, SwitchType
 
 
 def login_view(request):
@@ -115,6 +117,50 @@ def subscriber_delete(request, subscriber_id):
         return redirect('subscribers')
     return render(request, 'subscribers/subscriber_confirm_delete.html', {'subscriber': subscriber})
 
+@login_required
+def subscriber_toggle_status(request, subscriber_id):
+    if not request.user.is_authorized():
+        return redirect('login')
+    subscriber = get_object_or_404(Subscriber, id=subscriber_id)
+    if request.method == 'POST':
+        subscriber.is_active = not subscriber.is_active
+        subscriber.save()
+        return redirect('subscribers')
+    return redirect('subscribers')
+
+@login_required
+def devices(request):
+    if not request.user.is_authorized():
+        return redirect("login")
+    query = request.GET.get('q', '')
+    per_page = request.GET.get('per_page', '10')
+
+    devices = Device.objects.select_related('subscriber', 'switch').all()
+    if query:
+        devices = devices.filter(
+            Q(ip_address__icontains=query) |
+            Q(mac_address__icontains=query) |
+            Q(subscriber__street_icontains=query) |
+            Q(subscriber_house__icontains=query) |
+            Q(subscriber__apartment__icontains=query) |
+            Q(switch__name__icontains=query) |
+            Q(switch__ip_address__icontains=query)
+        )
+    if per_page == 'all':
+        paginated_devices = devices
+    else:
+        from django.core.paginator import  Paginator
+        paginator = Paginator(devices, int(per_page))
+        page_number = request.GET.get('page')
+        paginated_devices = paginator.get_page(page_number)
+
+        device_form = DeviceForm()
+        return  render(request, 'devices/devices.html', {
+            'devices': paginated_devices,
+            'query': query,
+            'per_page': per_page,
+            'device_form': device_form
+        })
 
 @login_required
 def device_create(request):
@@ -160,11 +206,41 @@ def device_delete(request, device_id):
 
 
 @login_required
+def onu(request):
+    if not request.user.is_authorized():
+        return redirect('login')
+    return render(request, 'onu/onu.html', {})
+
+
+@login_required
 def switches(request):
     if not request.user.is_authorized():
         return redirect('login')
+    query = request.GET.get('q', '')
+    per_page = request.GET.get('per_page', '10')
+
     switches = Switch.objects.all()
-    return render(request, 'switches/switches.html', {'switches': switches})
+    if query:
+        switches = switches.filter(
+            Q(name__icontains=query) |
+            Q(ip_address__icontains=query) |
+            Q(mac_address__icontains=query) |
+            Q(location__icontains=query)
+        )
+
+    if per_page == 'all':
+        paginated_switches = switches
+    else:
+        from django.core.paginator import Paginator
+        paginator = Paginator(switches, int(per_page))
+        page_number = request.GET.get('page')
+        paginated_switches = paginator.get_page(page_number)
+
+    return render(request, 'switchs/switches.html', {
+        'switches': paginated_switches,
+        'query': query,
+        'per_page': per_page,
+    })
 
 @login_required
 def switch_create(request):
@@ -207,6 +283,75 @@ def switch_delete(request, switch_id):
         switch.delete()
         return redirect('switches')
     return render(request, 'switches/switch_confirm_delete.html', {'switch': switch})
+
+
+@login_required
+def switch_types(request):
+    if not request.user.is_authorized():
+        return redirect('login')
+    query = request.GET.get('q', '')
+    per_page = request.GET.get('per_page', '10')
+
+    switch_types = SwitchType.objects.all()
+    if query:
+        switch_types = switch_types.filter(
+            Q(name__icontains=query) |
+            Q(description__icontains=query)
+        )
+
+    if per_page == 'all':
+        paginated_switch_types = switch_types
+    else:
+        from django.core.paginator import Paginator
+        paginator = Paginator(switch_types, int(per_page))
+        page_number = request.GET.get('page')
+        paginated_switch_types = paginator.get_page(page_number)
+
+    return render(request, 'switch_types/switch_types.html', {
+        'switch_types': paginated_switch_types,
+        'query': query,
+        'per_page': per_page,
+    })
+
+@login_required
+def switch_type_create(request):
+    if not request.user.is_authorized():
+        return redirect('login')
+    if request.method == 'POST':
+        form = SwitchTypeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('switch_types')
+    else:
+        form = SwitchTypeForm()
+    return render(request, 'switch_types/switch_type_form.html', {'form': form})
+
+
+
+@login_required
+def switch_type_edit(request, switch_type_id):
+    if not request.user.is_authorized():
+        return redirect('login')
+    switch_type = get_object_or_404(SwitchType, id=switch_type_id)
+    if request.method == 'POST':
+        form = SwitchTypeForm(request.POST, instance=switch_type)
+        if form.is_valid():
+            form.save()
+            return redirect('switch_types')
+    else:
+        form = SwitchTypeForm(instance=switch_type)
+    return render(request, 'switch_types/switch_type_form.html', {'form': form, 'switch_type': switch_type})
+
+@login_required
+def switch_type_delete(request, switch_type_id):
+    if not request.user.is_authorized():
+        return redirect('login')
+    switch_type = get_object_or_404(SwitchType, id=switch_type_id)
+    if request.method == 'POST':
+        switch_type.delete()
+        return redirect('switch_types')
+    return render(request, 'switch_types/switch_type_confirm_delete.html', {'switch_type': switch_type})
+
 
 
 @login_required
@@ -309,9 +454,30 @@ def service_delete(request, service_id):
 def payments(request):
     if not request.user.is_authorized():
         return redirect('login')
-    payments = Payment.objects.all()
-    return render(request, 'payments/payments.html', {'payments': payments})
+    query = request.GET.get('q', '')
+    per_page = request.GET.get('per_page', '10')
 
+    payments = Payment.objects.select_related('subscriber').all()
+    if query:
+        payments = payments.filter(
+            Q(subscriber__first_name__icontains=query) |
+            Q(subscriber__last_name__icontains=query) |
+            Q(comment__icontains=query)
+        )
+
+    if per_page == 'all':
+        paginated_payments = payments
+    else:
+        from django.core.paginator import Paginator
+        paginator = Paginator(payments, int(per_page))
+        page_number = request.GET.get('page')
+        paginated_payments = paginator.get_page(page_number)
+
+    return render(request, 'payments.html', {
+        'payments': paginated_payments,
+        'query': query,
+        'per_page': per_page,
+    })
 
 @login_required
 def payment_create(request):
@@ -355,6 +521,12 @@ def payment_delete(request, payment_id):
         return redirect('subscribers')
     return render(request, 'payments/payment_confirm_delete.html', {'payment': payment})
 
+
+@login_required
+def reports(request):
+    if not request.user.is_authorized():
+        return redirect('login')
+    return render(request, 'reports.html', {})
 
 @login_required
 def equipment(request):

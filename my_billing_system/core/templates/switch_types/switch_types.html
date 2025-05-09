@@ -1,12 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}Тарифы{% endblock %}
+{% block title %}Типы коммутаторов{% endblock %}
 {% block content %}
-    <h1 class="text-2xl font-bold mb-4">Список тарифов</h1>
+    <!-- Подменю -->
+    <div class="bg-gray-200 p-2 mb-4">
+        <div class="container mx-auto flex space-x-4">
+            <a href="{% url 'switches' %}" class="px-3 py-2 rounded {% if request.path == '/switches/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">Коммутаторы</a>
+            <a href="{% url 'switch_types' %}" class="px-3 py-2 rounded {% if request.path == '/switch_types/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">Типы коммутаторов</a>
+        </div>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-4">Список типов коммутаторов</h1>
 
     <!-- Кнопки и поиск -->
     <div class="flex justify-between items-center mb-4">
         <div>
-            <button onclick="openPopup('{% url 'tariff_create' %}', 'Добавить тариф', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить тариф</button>
+            <button onclick="openPopup('{% url 'switch_type_create' %}', 'Добавить тип коммутатора', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить тип коммутатора</button>
         </div>
         <form method="get" class="flex items-center">
             <input type="text" name="q" value="{{ query }}" placeholder="Поиск по названию, описанию..." class="border p-2 w-96">
@@ -28,20 +36,20 @@
             </select>
             <input type="hidden" name="q" value="{{ query }}">
         </form>
-        {% if tariffs.has_other_pages %}
+        {% if switch_types.has_other_pages %}
             <div class="flex space-x-2">
-                {% if tariffs.has_previous %}
-                    <a href="?page={{ tariffs.previous_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">Пред</a>
+                {% if switch_types.has_previous %}
+                    <a href="?page={{ switch_types.previous_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">Пред</a>
                 {% endif %}
-                {% for num in tariffs.paginator.page_range %}
-                    {% if tariffs.number == num %}
+                {% for num in switch_types.paginator.page_range %}
+                    {% if switch_types.number == num %}
                         <span class="bg-blue-500 text-white px-3 py-1 rounded">{{ num }}</span>
                     {% else %}
                         <a href="?page={{ num }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">{{ num }}</a>
                     {% endif %}
                 {% endfor %}
-                {% if tariffs.has_next %}
-                    <a href="?page={{ tariffs.next_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">След</a>
+                {% if switch_types.has_next %}
+                    <a href="?page={{ switch_types.next_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">След</a>
                 {% endif %}
             </div>
         {% endif %}
@@ -51,38 +59,34 @@
         <thead>
             <tr class="bg-gray-200">
                 <th class="border p-2">Название</th>
-                <th class="border p-2">Цена</th>
-                <th class="border p-2">Скорость</th>
                 <th class="border p-2">Описание</th>
                 <th class="border p-2">Действия</th>
             </tr>
         </thead>
         <tbody>
-            {% for tariff in tariffs %}
-                <tr class="cursor-pointer hover:bg-gray-100" onclick="toggleDetails('details-{{ tariff.id }}')">
-                    <td class="border p-2">{{ tariff.name }}</td>
-                    <td class="border p-2">{{ tariff.price }}</td>
-                    <td class="border p-2">{{ tariff.speed }}</td>
-                    <td class="border p-2">{{ tariff.description|default:"—" }}</td>
+            {% for switch_type in switch_types %}
+                <tr class="cursor-pointer hover:bg-gray-100" onclick="toggleDetails('details-{{ switch_type.id }}')">
+                    <td class="border p-2">{{ switch_type.name }}</td>
+                    <td class="border p-2">{{ switch_type.description|default:"—" }}</td>
                     <td class="border p-2">
                         <div class="flex space-x-2">
-                            <button onclick="openPopup('{% url 'tariff_edit' tariff.id %}', 'Редактировать тариф', 600, 600)" class="text-blue-500 hover:underline">Редактировать</button>
-                            <button onclick="openPopup('{% url 'tariff_delete' tariff.id %}', 'Удалить тариф', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
+                            <button onclick="openPopup('{% url 'switch_type_edit' switch_type.id %}', 'Редактировать тип коммутатора', 600, 600)" class="text-blue-500 hover:underline">Редактировать</button>
+                            <button onclick="openPopup('{% url 'switch_type_delete' switch_type.id %}', 'Удалить тип коммутатора', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
                         </div>
                     </td>
                 </tr>
                 <!-- Выпадающий блок -->
-                <tr id="details-{{ tariff.id }}" class="hidden">
-                    <td colspan="5" class="border p-4 bg-gray-50">
+                <tr id="details-{{ switch_type.id }}" class="hidden">
+                    <td colspan="3" class="border p-4 bg-gray-50">
                         <div class="flex space-x-4">
-                            <button onclick="openPopup('{% url 'tariff_edit' tariff.id %}', 'Редактировать тариф', 600, 600)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать тариф</button>
-                            <button onclick="openPopup('{% url 'tariff_delete' tariff.id %}', 'Удалить тариф', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить тариф</button>
+                            <button onclick="openPopup('{% url 'switch_type_edit' switch_type.id %}', 'Редактировать тип коммутатора', 600, 600)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать тип коммутатора</button>
+                            <button onclick="openPopup('{% url 'switch_type_delete' switch_type.id %}', 'Удалить тип коммутатора', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить тип коммутатора</button>
                         </div>
                     </td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="5" class="border p-2 text-center">Нет тарифов</td>
+                    <td colspan="3" class="border p-2 text-center">Нет типов коммутаторов</td>
                 </tr>
             {% endfor %}
         </tbody>

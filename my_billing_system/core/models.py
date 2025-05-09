@@ -118,6 +118,24 @@ class Device(models.Model):
         if self.switch and self.port and (self.port < 1 or self.port > self.switch.switch_type.port_count):
             raise ValidationError({'port': f'Порт должен быть в пределах 1-{self.switch.switch_type.port_count}'})
 
+class Onu(models.Model):
+    mac = models.CharField(max_length=17, unique=True)
+    description = models.TextField(blank=True)
+    ip = models.GenericIPAddressField(unique=True, blank=False)
+    subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE)
+    location = models.CharField(max_length=200, blank=True)
+
+    def __str__(self):
+        return f"{self.mac} ({self.subscriber})"
+
+class SwitchType(models.Model):
+    name = models.CharField(max_length=100)
+    lib = models.CharField(max_length=250)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
 class Payment(models.Model):
     subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE, related_name='payments')
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, blank=True, null=True, related_name='payments')

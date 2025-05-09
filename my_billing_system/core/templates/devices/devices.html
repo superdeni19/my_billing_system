@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}Устройства{% endblock %}
+{% block content %}
+    <!-- Подменю -->
+    <div class="bg-gray-200 p-2 mb-4">
+        <div class="container mx-auto flex space-x-4">
+            <a href="{% url 'subscribers' %}" class="px-3 py-2 rounded {% if request.path == '/subscribers/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">Абоненты</a>
+            <a href="{% url 'devices' %}" class="px-3 py-2 rounded {% if request.path == '/devices/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">Устройства</a>
+            <a href="{% url 'onu' %}" class="px-3 py-2 rounded {% if request.path == '/onu/' %}bg-blue-500 text-white{% else %}hover:bg-gray-300{% endif %}">ONU</a>
+        </div>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-4">Список устройств</h1>
+
+    <!-- Кнопки и поиск -->
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <button onclick="openPopup('{% url 'device_create' %}', 'Добавить устройство', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
+        </div>
+        <form method="get" class="flex items-center">
+            <input type="text" name="q" value="{{ query }}" placeholder="Поиск по IP, MAC, адресу абонента..." class="border p-2 w-96">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-2">Найти</button>
+        </form>
+    </div>
+
+    <!-- Пагинация и выбор количества записей -->
+    <div class="flex justify-between items-center mb-4">
+        <form method="get" class="flex items-center">
+            <label for="per_page" class="mr-2">Показать:</label>
+            <select name="per_page" id="per_page" onchange="this.form.submit()" class="border p-2">
+                <option value="10" {% if per_page == '10' %}selected{% endif %}>10</option>
+                <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                <option value="1000" {% if per_page == '1000' %}selected{% endif %}>1000</option>
+                <option value="all" {% if per_page == 'all' %}selected{% endif %}>Все</option>
+            </select>
+            <input type="hidden" name="q" value="{{ query }}">
+        </form>
+        {% if devices.has_other_pages %}
+            <div class="flex space-x-2">
+                {% if devices.has_previous %}
+                    <a href="?page={{ devices.previous_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">Пред</a>
+                {% endif %}
+                {% for num in devices.paginator.page_range %}
+                    {% if devices.number == num %}
+                        <span class="bg-blue-500 text-white px-3 py-1 rounded">{{ num }}</span>
+                    {% else %}
+                        <a href="?page={{ num }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if devices.has_next %}
+                    <a href="?page={{ devices.next_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">След</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <table class="w-full border-collapse bg-white shadow-md">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border p-2">IP-адрес</th>
+                <th class="border p-2">MAC-адрес</th>
+                <th class="border p-2">Абонент</th>
+                <th class="border p-2">Адрес</th>
+                <th class="border p-2">Коммутатор</th>
+                <th class="border p-2">Порт</th>
+                <th class="border p-2">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+                <tr class="cursor-pointer hover:bg-gray-100" onclick="toggleDetails('details-{{ device.id }}')">
+                    <td class="border p-2">{{ device.ip_address }}</td>
+                    <td class="border p-2">{{ device.mac_address }}</td>
+                    <td class="border p-2">{{ device.subscriber }}</td>
+                    <td class="border p-2">
+                        {{ device.subscriber.street }} {{ device.subscriber.house }}{% if device.subscriber.apartment %}, кв. {{ device.subscriber.apartment }}{% endif %}
+                    </td>
+                    <td class="border p-2">{{ device.switch|default:"—" }}</td>
+                    <td class="border p-2">{{ device.port|default:"—" }}</td>
+                    <td class="border p-2">
+                        <div class="flex space-x-2">
+                            <button onclick="openPopup('{% url 'device_edit' device.id %}', 'Редактировать устройство', 600, 600)" class="text-blue-500 hover:underline">Редактировать</button>
+                            <button onclick="openPopup('{% url 'device_delete' device.id %}', 'Удалить устройство', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
+                        </div>
+                    </td>
+                </tr>
+                <!-- Выпадающий блок -->
+                <tr id="details-{{ device.id }}" class="hidden">
+                    <td colspan="7" class="border p-4 bg-gray-50">
+                        <div class="flex space-x-4">
+                            <button onclick="openPopup('{% url 'device_edit' device.id %}', 'Редактировать устройство', 600, 600)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать устройство</button>
+                            <button onclick="openPopup('{% url 'device_delete' device.id %}', 'Удалить устройство', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить устройство</button>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7" class="border p-2 text-center">Нет устройств</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function toggleDetails(id) {
+            const element = document.getElementById(id);
+            element.classList.toggle('hidden');
+        }
+
+        function openPopup(url, title, width, height) {
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            window.open(url, title, `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+        }
+    </script>
+{% endblock %}
