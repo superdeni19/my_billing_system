@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Удалить коммутатор</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <h1 class="text-2xl font-bold mb-4">Удалить коммутатор</h1>
+    <p>Вы уверены, что хотите удалить коммутатор <strong>{{ switch }}</strong>?</p>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div class="flex space-x-2">
+            <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить</button>
+            <button type="button" onclick="window.close()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Закрыть</button>
+        </div>
+    </form>
+</body>
+</html>

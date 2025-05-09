@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Удалить услугу{% endblock %}
+{% block content %}
+    <h1 class="text-2xl font-bold mb-4">Удалить услугу</h1>
+    <p>Вы уверены, что хотите удалить услугу <strong>{{ service }}</strong>?</p>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить</button>
+        <a href="{% url 'services' %}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Отмена</a>
+    </form>
+{% endblock %}

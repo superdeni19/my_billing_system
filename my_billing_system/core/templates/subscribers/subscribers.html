@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}Абоненты{% endblock %}
+{% block content %}
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Список абонентов</h1>
+        <div class="flex space-x-2">
+            <button onclick="openPopup('{% url 'subscriber_create' %}', 'Добавить абонента', 600, 800)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Добавить абонента</button>
+            <button onclick="openPopup('{% url 'device_create' %}', 'Добавить устройство', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
+            <button onclick="openPopup('{% url 'payment_create' %}', 'Добавить платёж', 600, 600)" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Добавить платёж</button>
+            <button onclick="openPopup('{% url 'service_create' %}', 'Добавить услугу', 600, 600)" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Добавить услугу</button>
+        </div>
+    </div>
+
+    <!-- Форма поиска -->
+    <form method="get" class="mb-4">
+        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по имени, фамилии, отчеству, улице, дому, квартире" class="border p-2 w-1/2">
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Найти</button>
+    </form>
+
+    <!-- Пагинация и выбор количества записей -->
+    <div class="flex justify-between items-center mb-4">
+        <form method="get" class="flex items-center">
+            <label for="per_page" class="mr-2">Показать:</label>
+            <select name="per_page" id="per_page" onchange="this.form.submit()" class="border p-2">
+                <option value="10" {% if per_page == '10' %}selected{% endif %}>10</option>
+                <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                <option value="1000" {% if per_page == '1000' %}selected{% endif %}>1000</option>
+                <option value="all" {% if per_page == 'all' %}selected{% endif %}>Все</option>
+            </select>
+            <input type="hidden" name="q" value="{{ query }}">
+        </form>
+        {% if subscribers.has_other_pages %}
+            <div class="flex space-x-2">
+                {% if subscribers.has_previous %}
+                    <a href="?page={{ subscribers.previous_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">Пред</a>
+                {% endif %}
+                {% for num in subscribers.paginator.page_range %}
+                    {% if subscribers.number == num %}
+                        <span class="bg-blue-500 text-white px-3 py-1 rounded">{{ num }}</span>
+                    {% else %}
+                        <a href="?page={{ num }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if subscribers.has_next %}
+                    <a href="?page={{ subscribers.next_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">След</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <table class="w-full border-collapse bg-white shadow-md">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border p-2">Имя</th>
+                <th class="border p-2">Фамилия</th>
+                <th class="border p-2">Отчество</th>
+                <th class="border p-2">Улица</th>
+                <th class="border p-2">Дом</th>
+                <th class="border p-2">Квартира</th>
+                <th class="border p-2">Телефон</th>
+                <th class="border p-2">Паспорт</th>
+                <th class="border p-2">Тариф</th>
+                <th class="border p-2">Тип</th>
+                <th class="border p-2">ИНН</th>
+                <th class="border p-2">Баланс</th>
+                <th class="border p-2">Статус</th>
+                <th class="border p-2">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for subscriber in subscribers %}
+                <tr class="cursor-pointer hover:bg-gray-100" onclick="toggleDetails('details-{{ subscriber.id }}')">
+                    <td class="border p-2">{{ subscriber.first_name }}</td>
+                    <td class="border p-2">{{ subscriber.last_name }}</td>
+                    <td class="border p-2">{{ subscriber.father_name|default:"—" }}</td>
+                    <td class="border p-2">{{ subscriber.street }}</td>
+                    <td class="border p-2">{{ subscriber.house }}</td>
+                    <td class="border p-2">{{ subscriber.apartment|default:"—" }}</td>
+                    <td class="border p-2">{{ subscriber.phone }}</td>
+                    <td class="border p-2">{{ subscriber.passport|default:"—" }}</td>
+                    <td class="border p-2">{{ subscriber.tariff|default:"—" }}</td>
+                    <td class="border p-2">{{ subscriber.get_type_display|default:"—" }}</td>
+                    <td class="border p-2">{{ subscriber.inn|default:"—" }}</td>
+                    <td class="border p-2">{{ subscriber.balance }}</td>
+                    <td class="border p-2">{{ subscriber.is_active|yesno:"Активен,Неактивен" }}</td>
+                    <td class="border p-2">
+                        <div class="flex space-x-2">
+                            <button onclick="openPopup('{% url 'subscriber_edit' subscriber.id %}', 'Редактировать абонента', 600, 800)" class="text-blue-500 hover:underline">Редактировать</button>
+                            <button onclick="openPopup('{% url 'device_create' %}?subscriber={{ subscriber.id }}', 'Добавить устройство', 600, 600)" class="text-green-500 hover:underline">Устройство</button>
+                            <button onclick="openPopup('{% url 'payment_create' %}?subscriber={{ subscriber.id }}', 'Добавить платёж', 600, 600)" class="text-purple-500 hover:underline">Платёж</button>
+                            <button onclick="openPopup('{% url 'service_create' %}?subscriber={{ subscriber.id }}', 'Добавить услугу', 600, 600)" class="text-teal-500 hover:underline">Услуга</button>
+                            <button onclick="openPopup('{% url 'subscriber_delete' subscriber.id %}', 'Удалить абонента', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
+                        </div>
+                    </td>
+                </tr>
+                <!-- Выпадающий блок -->
+                <tr id="details-{{ subscriber.id }}" class="hidden">
+                    <td colspan="14" class="border p-4 bg-gray-50">
+                        <div class="space-y-4">
+                            <!-- Кнопки управления -->
+                            <div class="flex space-x-4 mb-4">
+                                <button onclick="openPopup('{% url 'subscriber_edit' subscriber.id %}', 'Редактировать абонента', 600, 800)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать абонента</button>
+                                <button onclick="openPopup('{% url 'device_create' %}?subscriber={{ subscriber.id }}', 'Добавить устройство', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
+                                <button onclick="openPopup('{% url 'payment_create' %}?subscriber={{ subscriber.id }}', 'Добавить платёж', 600, 600)" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Добавить платёж</button>
+                                <button onclick="openPopup('{% url 'service_create' %}?subscriber={{ subscriber.id }}', 'Добавить услугу', 600, 600)" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Добавить услугу</button>
+                                <button onclick="openPopup('{% url 'subscriber_delete' subscriber.id %}', 'Удалить абонента', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить</button>
+                            </div>
+
+                            <!-- Список устройств -->
+                            <div>
+                                <h3 class="text-lg font-semibold mb-2">Устройства</h3>
+                                {% for device_form in device_forms.subscriber.id %}
+                                    <form method="post" action="{% url 'device_edit' device_form.instance.id %}" class="space-y-2 mb-4">
+                                        {% csrf_token %}
+                                        {{ device_form.as_p }}
+                                        <div class="flex space-x-2">
+                                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить устройство</button>
+                                            <button type="button" onclick="openPopup('{% url 'device_delete' device_form.instance.id %}', 'Удалить устройство', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
+                                        </div>
+                                    </form>
+                                {% empty %}
+                                    <p>Нет устройств.</p>
+                                {% endfor %}
+                                <!-- Добавление устройства -->
+                                <form method="post" action="{% url 'device_create' %}" class="space-y-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="subscriber" value="{{ subscriber.id }}">
+                                    {{ new_device_form.as_p }}
+                                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
+                                </form>
+                            </div>
+
+                            <!-- Список услуг -->
+                            <div>
+                                <h3 class="text-lg font-semibold mb-2">Услуги</h3>
+                                {% for service_form in service_forms.subscriber.id %}
+                                    <form method="post" action="{% url 'service_edit' service_form.instance.id %}" class="space-y-2 mb-4">
+                                        {% csrf_token %}
+                                        {{ service_form.as_p }}
+                                        <div class="flex space-x-2">
+                                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить услугу</button>
+                                            <button type="button" onclick="openPopup('{% url 'service_delete' service_form.instance.id %}', 'Удалить услугу', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
+                                        </div>
+                                    </form>
+                                {% empty %}
+                                    <p>Нет услуг.</p>
+                                {% endfor %}
+                                <!-- Добавление услуги -->
+                                <form method="post" action="{% url 'service_create' %}" class="space-y-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="subscriber" value="{{ subscriber.id }}">
+                                    {{ new_service_form.as_p }}
+                                    <button type="submit" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Добавить услугу</button>
+                                </form>
+                            </div>
+
+                            <!-- Список платежей -->
+                            <div>
+                                <h3 class="text-lg font-semibold mb-2">Платежи</h3>
+                                {% for payment_form in payment_forms.subscriber.id %}
+                                    <form method="post" action="{% url 'payment_edit' payment_form.instance.id %}" class="space-y-2 mb-4">
+                                        {% csrf_token %}
+                                        {{ payment_form.as_p }}
+                                        <div class="flex space-x-2">
+                                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить платёж</button>
+                                            <button type="button" onclick="openPopup('{% url 'payment_delete' payment_form.instance.id %}', 'Удалить платёж', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
+                                        </div>
+                                    </form>
+                                {% empty %}
+                                    <p>Нет платежей.</p>
+                                {% endfor %}
+                                <!-- Добавление платежа -->
+                                <form method="post" action="{% url 'payment_create' %}" class="space-y-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="subscriber" value="{{ subscriber.id }}">
+                                    {{ new_payment_form.as_p }}
+                                    <button type="submit" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Добавить платёж</button>
+                                </form>
+                            </div>
+
+                            <!-- Редактирование тарифа -->
+                            <div>
+                                <h3 class="text-lg font-semibold mb-2">Редактировать тариф</h3>
+                                <form method="post" action="{% url 'subscriber_edit' subscriber.id %}" class="space-y-2">
+                                    {% csrf_token %}
+                                    <label class="block text-sm font-medium">Тариф</label>
+                                    {{ subscriber_forms.subscriber.id.tariff }}
+                                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить тариф</button>
+                                </form>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="14" class="border p-2 text-center">Нет абонентов</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function toggleDetails(id) {
+            const element = document.getElementById(id);
+            element.classList.toggle('hidden');
+        }
+
+        function openPopup(url, title, width, height) {
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            window.open(url, title, `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+        }
+
+        // Обработка условной доступности поля ИНН
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('select[id*="id_type"]').forEach(typeSelect => {
+                const form = typeSelect.closest('form');
+                const innField = form.querySelector('input[id*="id_inn"]');
+                const innLabel = form.querySelector('label[for*="id_inn"]');
+
+                function toggleInnField() {
+                    if (typeSelect.value === '2') {
+                        innField.disabled = false;
+                        innField.required = true;
+                        innField.classList.remove('opacity-50');
+                        innLabel.classList.remove('opacity-50');
+                    } else {
+                        innField.disabled = true;
+                        innField.required = false;
+                        innField.value = '';
+                        innField.classList.add('opacity-50');
+                        innLabel.classList.add('opacity-50');
+                    }
+                }
+
+                typeSelect.addEventListener('change', toggleInnField);
+                toggleInnField();
+            });
+        });
+    </script>
+{% endblock %}

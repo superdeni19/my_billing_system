@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Система Биллинга{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <header class="bg-gray-800 text-white">
+        <nav class="container mx-auto p-4">
+            <ul class="flex space-x-6">
+                <li><a href="{% url 'subscribers' %}" class="hover:text-gray-300">Абоненты</a></li>
+                <li><a href="{% url 'tariffs' %}" class="hover:text-gray-300">Тарифы</a></li>
+                <li><a href="{% url 'services' %}" class="hover:text-gray-300">Услуги</a></li>
+                <li><a href="{% url 'equipment' %}" class="hover:text-gray-300">Оборудование</a></li>
+                <li><a href="{% url 'payments' %}" class="hover:text-gray-300">Оплата</a></li>
+                {% if request.user.is_admin %}
+                    <li><a href="{% url 'settings' %}" class="hover:text-gray-300">Настройки</a></li>
+                {% endif %}
+                <li><a href="{% url 'monitoring' %}" class="hover:text-gray-300">Мониторинг</a></li>
+                <li><a href="{% url 'logout' %}" class="hover:text-gray-300">Выход</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="flex">
+        <aside class="w-64 bg-white shadow-md p-4">
+            {% block sidebar %}
+                {% if request.resolver_match.url_name in 'subscribers subscriber_create subscriber_edit subscriber_delete' %}
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'subscribers' %}" class="block p-2 hover:bg-gray-200">Абоненты</a></li>
+                        <li><a href="{% url 'device_create' %}" class="block p-2 hover:bg-gray-200">Устройства</a></li>
+                    </ul>
+                {% elif request.resolver_match.url_name in 'tariffs tariff_create tariff_edit tariff_delete' %}
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'tariffs' %}" class="block p-2 hover:bg-gray-200">Тарифы</a></li>
+                    </ul>
+                {% elif request.resolver_match.url_name in 'services service_create service_edit service_delete' %}
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'services' %}" class="block p-2 hover:bg-gray-200">Услуги</a></li>
+                    </ul>
+                {% elif request.resolver_match.url_name == 'equipment' %}
+                    <ul class="space-y-2">
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">Коммутаторы</a></li>
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">OLT</a></li>
+                    </ul>
+                {% elif request.resolver_match.url_name == 'payments' %}
+                    <ul class="space-y-2">
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">Платежи</a></li>
+                    </ul>
+                {% elif request.resolver_match.url_name == 'settings' %}
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'tariffs' %}" class="block p-2 hover:bg-gray-200">Заведение тарифов</a></li>
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">Нас. пункты</a></li>
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">Города</a></li>
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">Улицы</a></li>
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">Кассы</a></li>
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">Способы оплаты</a></li>
+                    </ul>
+                {% elif request.resolver_match.url_name == 'monitoring' %}
+                    <ul class="space-y-2">
+                        <li><a href="#" class="block p-2 hover:bg-gray-200">OLT</a></li>
+                    </ul>
+                {% endif %}
+            {% endblock %}
+        </aside>
+
+        <main class="flex-1 p-6">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+</body>
+</html>

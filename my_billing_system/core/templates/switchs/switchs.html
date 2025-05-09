@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Коммутаторы{% endblock %}
+{% block content %}
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Список коммутаторов</h1>
+        <button onclick="openPopup('{% url 'switch_create' %}', 'Добавить коммутатор', 600, 600)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Добавить коммутатор</button>
+    </div>
+    <table class="w-full border-collapse bg-white shadow-md">
+        <thead>
+            <tr class="bg-gray-200">
+                <th class="border p-2">Название</th>
+                <th class="border p-2">IP-адрес</th>
+                <th class="border p-2">Порты</th>
+                <th class="border p-2">Местоположение</th>
+                <th class="border p-2">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for switch in switches %}
+                <tr>
+                    <td class="border p-2">{{ switch.name }}</td>
+                    <td class="border p-2">{{ switch.ip_address|default:"—" }}</td>
+                    <td class="border p-2">{{ switch.ports }}</td>
+                    <td class="border p-2">{{ switch.location|default:"—" }}</td>
+                    <td class="border p-2">
+                        <div class="flex space-x-2">
+                            <button onclick="openPopup('{% url 'switch_edit' switch.id %}', 'Редактировать коммутатор', 600, 600)" class="text-blue-500 hover:underline">Редактировать</button>
+                            <button onclick="openPopup('{% url 'switch_delete' switch.id %}', 'Удалить коммутатор', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="border p-2 text-center">Нет коммутаторов</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function openPopup(url, title, width, height) {
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            window.open(url, title, `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+        }
+    </script>
+{% endblock %}
