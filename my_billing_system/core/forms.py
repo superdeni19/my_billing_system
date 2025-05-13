@@ -7,7 +7,7 @@ class SubscriberForm(forms.ModelForm):
         model = Subscriber
         fields = [
             'first_name', 'last_name', 'father_name', 'street', 'house', 'apartment',
-            'phone', 'passport', 'type', 'balance', 'is_active'
+            'phone', 'passport', 'type', 'balance', 'is_active', 'active_until'
         ]
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
@@ -22,6 +22,7 @@ class SubscriberForm(forms.ModelForm):
             'inn' : forms.TextInput(attrs={'class': 'border p-2 w-full'}),
             'balance': forms.NumberInput(attrs={'class': 'border p-2 w-full'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'h-4 w-4'}),
+            'active_until': forms.DateInput(attrs={'class': 'border p-2 w-full', 'type': 'date'}),
         }
 
 class DeviceForm(forms.ModelForm):
@@ -50,56 +51,65 @@ class OnuForm(forms.ModelForm):
 class TariffForm(forms.ModelForm):
     class Meta:
         model = Tariff
-        fields = ['name', 'price', 'speed', 'description']
+        fields = ['name', 'price', 'speed', 'description', 'billing_type', 'daily_price']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
-            'price': forms.NumberInput(attrs={'class': 'border p-2 w-full'}),
+            'price': forms.NumberInput(attrs={'class': 'border p-2 w-full', 'id': 'id_price'}),
             'speed': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
             'description': forms.Textarea(attrs={'class': 'border p-2 w-full', 'rows': 4}),
+            'billing_type': forms.Select(attrs={'class': 'border p-2 w-full', 'id': 'id_billing_type'}),
+            'daily_price': forms.NumberInput(attrs={'class': 'border p-2 w-full', 'id': 'id_daily_price'}),
         }
 
 class ServiceForm(forms.ModelForm):
     class Meta:
         model = Service
-        fields = ['subscriber', 'tariff', 'price', 'date_finish']
+        fields = ['subscriber', 'tariff', 'date_start', 'date_finish', 'is_active', 'last_billed', 'billing_start']
         widgets = {
             'subscriber': forms.Select(attrs={'class': 'border p-2 w-full'}),
             'tariff': forms.Select(attrs={'class': 'border p-2 w-full'}),
-            'price': forms.NumberInput(attrs={'class': 'border p-2 w-full'}),
-            'date_finish': forms.DateTimeInput(attrs={'class': 'border p-2 w-full', 'type': 'datetime-local'}),
+            'date_start': forms.DateInput(attrs={'class': 'border p-2 w-full', 'type': 'date'}),
+            'date_finish': forms.DateInput(attrs={'class': 'border p-2 w-full', 'type': 'date'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'border p-2'}),
+            'last_billed': forms.DateInput(attrs={'class': 'border p-2 w-full', 'type': 'date'}),
+            'billing_start': forms.DateInput(attrs={'class': 'border p-2 w-full', 'type': 'date'}),
         }
+
 
 class PaymentForm(forms.ModelForm):
     class Meta:
         model = Payment
-        fields = ['subscriber', 'service', 'amount']
+        fields = ['subscriber', 'amount', 'date', 'description', 'operator']
         widgets = {
             'subscriber': forms.Select(attrs={'class': 'border p-2 w-full'}),
-            'service': forms.Select(attrs={'class': 'border p-2 w-full'}),
             'amount': forms.NumberInput(attrs={'class': 'border p-2 w-full'}),
+            'date': forms.DateInput(attrs={'class': 'border p-2 w-full', 'type': 'date'}),
+            'description': forms.Textarea(attrs={'class': 'border p-2 w-full', 'rows': 4}),
+            'operator': forms.Select(attrs={'class': 'border p-2 w-full'}),
         }
 
 class SwitchForm(forms.ModelForm):
     class Meta:
         model = Switch
-        fields = ['name', 'ip_address',  'location']
+        fields = ['name', 'ip_address', 'mac_address', 'switch_type', 'location']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
-            'ip_address': forms.TextInput(attrs={'class': 'border p-2 w-full', 'placeholder': '10.0.0.0'}),
+            'ip_address': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
+            'mac_address': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
+            'switch_type': forms.Select(attrs={'class': 'border p-2 w-full'}),
             'location': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
         }
 
 class SwitchTypeForm(forms.ModelForm):
     class Meta:
         model = SwitchType
-        fields = ['name', 'description', 'manufacturer', 'model', 'port_count', 'managed', 'max_speed', 'power_over_ethernet']
+        fields = ['name', 'description', 'manufacturer', 'model', 'port_count', 'max_speed', 'power_over_ethernet']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
             'description': forms.Textarea(attrs={'class': 'border p-2 w-full', 'rows': 4}),
             'manufacturer': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
             'model': forms.TextInput(attrs={'class': 'border p-2 w-full'}),
             'port_count': forms.NumberInput(attrs={'class': 'border p-2 w-full'}),
-            'managed': forms.CheckboxInput(attrs={'class': 'border p-2'}),
             'max_speed': forms.Select(attrs={'class': 'border p-2 w-full'}),
             'power_over_ethernet': forms.CheckboxInput(attrs={'class': 'border p-2'}),
         }

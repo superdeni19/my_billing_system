@@ -52,14 +52,14 @@ class TariffAdmin(admin.ModelAdmin):
     list_filter = ['created_at']
 
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ['subscriber', 'tariff', 'price', 'date_start', 'date_finish']
+    list_display = ['subscriber', 'tariff',  'date_start', 'date_finish']
     search_fields = ['subscriber__first_name', 'subscriber__last_name', 'tariff__name']
     list_filter = ['date_start', 'date_finish']
 
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['subscriber', 'service', 'amount', 'payment_date']
+    list_display = ['subscriber',  'amount', 'date', 'operator']
     search_fields = ['subscriber__first_name', 'subscriber__last_name']
-    list_filter = ['payment_date']
+    list_filter = ['date']
 
 class SwitchAdmin(admin.ModelAdmin):
     list_display = ['name', 'ip_address',  'location', 'created_at']

@@ -7,7 +7,7 @@ from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
-from .forms import SubscriberForm, DeviceForm, TariffForm, ServiceForm, PaymentForm, OnuForm, SwitchTypeForm
+from .forms import SubscriberForm, DeviceForm, TariffForm, ServiceForm, OnuForm, SwitchTypeForm, PaymentForm
 from .models import Subscriber, Device, Tariff, Service, Payment, Switch, SwitchType, Onu
 
 
@@ -86,7 +86,7 @@ def subscriber_create(request):
         form = SubscriberForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('subscribers')
+            #return redirect('subscribers')
     else:
         form = SubscriberForm()
     return render(request, 'subscribers/subscriber_form.html', {'form': form})
@@ -232,7 +232,7 @@ def onu(request):
         paginated_onu = paginator.get_page(page_number)
 
     onu_form = OnuForm()
-    return render(request, 'onu.html', {
+    return render(request, 'onu/onu.html', {
         'onu_list': paginated_onu,
         'query': query,
         'per_page': per_page,

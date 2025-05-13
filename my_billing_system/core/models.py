@@ -1,3 +1,6 @@
+from array import array
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import AbstractUser
@@ -21,15 +24,30 @@ class User(AbstractUser):
         return self.role == 'admin'
 
 class Tariff(models.Model):
+    BILLING_TYPE_CHOICES = (
+        ('monthly', 'Ежемесячное списание'),
+        ('daily', 'Ежедневное списание')
+    )
     name = models.CharField(max_length=100, unique=False)
     price = models.FloatField()
     speed = models.CharField(max_length=254, blank=False)
     description = models.TextField(blank=True)
+    billing_type = models.CharField(max_length=30, choices=BILLING_TYPE_CHOICES, default='monthly')
+    daily_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        """Валидация: для daily требуется daily_price, для monthly — price."""
+        if self.billing_type == 'daily' and (not self.daily_price or self.daily_price <= 0):
+            raise ValidationError("Для ежедневного списания необходимо указать дневную стоимость.")
+        if self.billing_type == 'monthly' and (not self.price or self.price <= 0):
+            raise ValidationError("Для ежемесячного списания необходимо указать месячную стоимость.")
+
 
 class Subscriber(models.Model):
     TYPE_CHOICES = (
@@ -46,13 +64,43 @@ class Subscriber(models.Model):
     passport = models.CharField(max_length=20, blank=True)
     type = models.CharField(max_length=1, choices=TYPE_CHOICES, default='1')
     inn = models.CharField(max_length=20, blank=True, null=True)
-    balance = models.FloatField(default=0.0)
+    balance = models.DecimalField(max_digits=10, decimal_places=2,default=0)
     is_active = models.BooleanField(default=False)
+    active_until = models.DateField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} {self.father_name or ''}".strip()
+
+    def update_active_until(self):
+        """Пересчитываем Дату Активности на основе баланса и активных услуг"""
+        active_service = self.services.filter(is_active=True)
+        if not active_service.exists():
+            self.active_until = None
+            self.is_active = False
+            self.save()
+            return
+
+        """Берем первую активную услугу"""
+        service = active_service.firts()
+        tariff = service.tariff
+
+        if tariff.billing_type == 'monthly':
+            # Месячная тарификация: считаем от billing_start
+            billing_start = service.billing_start or timezone.now().date()
+            month = int(self.balance // tariff.price)
+            remaining_balance = self.balance % tariff.price
+            days = int(remaining_balance / (tariff.price / 30)) #деление для остатка
+            self.active_until = billing_start + timedelta(days=month * 30 + days)
+        else:
+            days = int(self.balance / tariff.daily_price)
+            self.active_until = timezone.now().date() + timedelta(days=days)
+
+        self.is_active = self.balance >= (tariff.daily_price if tariff.billing_type == 'daily' else tariff.price)
+        self.save()
+
 
     def clean(self):
         if not re.match(r'^\+?\d{10,13}$', self.phone):
@@ -62,15 +110,7 @@ class Subscriber(models.Model):
         if self.type == '1' and self.inn:
             raise ValidationError({'inn': 'ИНН не требуется для физических лиц'})
 
-class SwitchType(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    port_count = models.IntegerField(blank=True, null=True)
-    snmp_profile = models.CharField(max_length=200, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return self.name
 
 class SwitchType(models.Model):
     name = models.CharField(max_length=100)
@@ -111,15 +151,38 @@ class Switch(models.Model):
 
 class Service(models.Model):
     subscriber = models.ForeignKey(Subscriber, on_delete=models.SET_NULL, blank=True, null=True, related_name='services')
-    tariff = models.ForeignKey(Tariff, on_delete=models.SET_NULL, blank=True, null=True, related_name='services')
-    price = models.FloatField()
-    date_start = models.DateTimeField(auto_now_add=True)
-    date_finish = models.DateTimeField(blank=True, null=True)
+    tariff = models.ForeignKey(Tariff, on_delete=models.CASCADE)
+    date_start = models.DateField()
+    date_finish = models.DateField()
+    is_active = models.BooleanField(default=True)
+    last_billed = models.DateField(null=True, blank=True)
+    billing_start = models.DateField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.tariff} для {self.subscriber} ({self.date_start})"
+
+class Payment(models.Model):
+    subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField()
+    description = models.TextField(blank=True)
+    operator = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.amount} от {self.date} ({self.subscriber})"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.subscriber.balance += self.amount
+        active_services = self.subscriber.services.filter(is_active=True)
+        for service in active_services:
+            if not service.billing_start:
+                service.billing_start = self.date
+                service.save()
+        self.subscriber.update_active_until()
 
 class Device(models.Model):
     subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE, related_name='devices')
@@ -142,7 +205,7 @@ class Device(models.Model):
 class Onu(models.Model):
     mac = models.CharField(max_length=17, unique=True)
     description = models.TextField(blank=True)
-    ip = models.GenericIPAddressField(unique=True, blank=False)
+    ip = models.GenericIPAddressField(unique=True, blank=True, null=True)
     subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE)
     location = models.CharField(max_length=200, blank=True)
 
@@ -150,24 +213,3 @@ class Onu(models.Model):
         return f"{self.mac} ({self.subscriber})"
 
 
-
-    def __str__(self):
-        return self.name
-
-class Payment(models.Model):
-    subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE, related_name='payments')
-    service = models.ForeignKey(Service, on_delete=models.SET_NULL, blank=True, null=True, related_name='payments')
-    amount = models.FloatField()
-    payment_date = models.DateTimeField(auto_now_add=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Платёж {self.amount} для {self.subscriber} ({self.payment_date})"
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.service and self.amount >= self.service.price:
-            from datetime import timedelta
-            self.service.date_finish = self.service.date_start + timedelta(days=30)
-            self.service.save()

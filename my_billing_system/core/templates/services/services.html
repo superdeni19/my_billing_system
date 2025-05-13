@@ -5,9 +5,42 @@
 
     <!-- Форма поиска -->
     <form method="get" class="mb-4">
-        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по абоненту, тарифу, дате" class="border p-2 w-1/2">
+        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по абоненту или тарифу" class="border p-2 w-1/2">
         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Найти</button>
     </form>
+
+    <!-- Пагинация и выбор количества записей -->
+    <div class="flex justify-between items-center mb-4">
+        <form method="get" class="flex items-center">
+            <label for="per_page" class="mr-2">Показать:</label>
+            <select name="per_page" id="per_page" onchange="this.form.submit()" class="border p-2">
+                <option value="10" {% if per_page == '10' %}selected{% endif %}>10</option>
+                <option value="20" {% if per_page == '20' %}selected{% endif %}>20</option>
+                <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == '100' %}selected{% endif %}>100</option>
+                <option value="1000" {% if per_page == '1000' %}selected{% endif %}>1000</option>
+                <option value="all" {% if per_page == 'all' %}selected{% endif %}>Все</option>
+            </select>
+            <input type="hidden" name="q" value="{{ query }}">
+        </form>
+        {% if services.has_other_pages %}
+            <div class="flex space-x-2">
+                {% if services.has_previous %}
+                    <a href="?page={{ services.previous_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">Пред</a>
+                {% endif %}
+                {% for num in services.paginator.page_range %}
+                    {% if services.number == num %}
+                        <span class="bg-blue-500 text-white px-3 py-1 rounded">{{ num }}</span>
+                    {% else %}
+                        <a href="?page={{ num }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if services.has_next %}
+                    <a href="?page={{ services.next_page_number }}&q={{ query }}&per_page={{ per_page }}" class="bg-gray-200 px-3 py-1 rounded">След</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
 
     <table class="w-full border-collapse bg-white shadow-md">
         <thead>
@@ -16,6 +49,8 @@
                 <th class="border p-2">Тариф</th>
                 <th class="border p-2">Дата начала</th>
                 <th class="border p-2">Дата окончания</th>
+                <th class="border p-2">Начало тарификации</th>
+                <th class="border p-2">Последнее списание</th>
                 <th class="border p-2">Статус</th>
                 <th class="border p-2">Действия</th>
             </tr>
@@ -25,8 +60,10 @@
                 <tr class="cursor-pointer hover:bg-gray-100" onclick="toggleDetails('details-{{ service.id }}')">
                     <td class="border p-2">{{ service.subscriber }}</td>
                     <td class="border p-2">{{ service.tariff }}</td>
-                    <td class="border p-2">{{ service.date_start|date:"d.m.Y" }}</td>
-                    <td class="border p-2">{{ service.date_finish|date:"d.m.Y" }}</td>
+                    <td class="border p-2">{{ service.date_start|date:"Y-m-d" }}</td>
+                    <td class="border p-2">{{ service.date_finish|date:"Y-m-d" }}</td>
+                    <td class="border p-2">{{ service.billing_start|date:"Y-m-d"|default:"—" }}</td>
+                    <td class="border p-2">{{ service.last_billed|date:"Y-m-d"|default:"—" }}</td>
                     <td class="border p-2">{{ service.is_active|yesno:"Активна,Неактивна" }}</td>
                     <td class="border p-2">
                         <div class="flex space-x-2">
@@ -37,16 +74,18 @@
                 </tr>
                 <!-- Выпадающий блок -->
                 <tr id="details-{{ service.id }}" class="hidden">
-                    <td colspan="6" class="border p-4 bg-gray-50">
+                    <td colspan="8" class="border p-4 bg-gray-50">
+                        <p><strong>Тариф:</strong> {{ service.tariff.name }} ({{ service.tariff.get_billing_type_display }})</p>
+                        <p><strong>Стоимость:</strong> {% if service.tariff.billing_type == 'monthly' %}{{ service.tariff.price }} руб./мес.{% else %}{{ service.tariff.daily_price }} руб./день{% endif %}</p>
                         <div class="flex space-x-4">
-                            <button onclick="openPopup('{% url 'service_edit' service.id %}', 'Редактировать услугу', 600, 600)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать услугу</button>
-                            <button onclick="openPopup('{% url 'service_delete' service.id %}', 'Удалить услугу', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить услугу</button>
+                            <button onclick="openPopup('{% url 'service_edit' service.id %}', 'Редактировать услугу', 600, 600)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать</button>
+                            <button onclick="openPopup('{% url 'service_delete' service.id %}', 'Удалить услугу', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить</button>
                         </div>
                     </td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="6" class="border p-2 text-center">Нет услуг</td>
+                    <td colspan="8" class="border p-2 text-center">Нет услуг</td>
                 </tr>
             {% endfor %}
         </tbody>

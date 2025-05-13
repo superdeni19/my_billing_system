@@ -1,15 +1,76 @@
 {% extends 'base.html' %}
-{% block title %}
-    {% if tariff %}Редактировать тариф{% else %}Добавить тариф{% endif %}
-{% endblock %}
+{% block title %} {% if tariff %}Редактировать тариф{% else %}Создать тариф{% endif %} {% endblock %}
 {% block content %}
-    <h1 class="text-2xl font-bold mb-4">
-        {% if tariff %}Редактировать тариф{% else %}Добавить тариф{% endif %}
-    </h1>
+    <h1 class="text-2xl font-bold mb-4">{% if tariff %}Редактировать тариф{% else %}Создать тариф{% endif %}</h1>
+
     <form method="post" class="space-y-4">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить</button>
-        <a href="{% url 'tariffs' %}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Отмена</a>
+        <div>
+            <label for="id_name" class="block text-sm font-medium">Название</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <p class="text-red-500 text-sm">{{ form.name.errors }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <label for="id_billing_type" class="block text-sm font-medium">Тип списания</label>
+            {{ form.billing_type }}
+            {% if form.billing_type.errors %}
+                <p class="text-red-500 text-sm">{{ form.billing_type.errors }}</p>
+            {% endif %}
+        </div>
+        <div id="price_field">
+            <label for="id_price" class="block text-sm font-medium">Месячная стоимость (руб.)</label>
+            {{ form.price }}
+            {% if form.price.errors %}
+                <p class="text-red-500 text-sm">{{ form.price.errors }}</p>
+            {% endif %}
+        </div>
+        <div id="daily_price_field">
+            <label for="id_daily_price" class="block text-sm font-medium">Дневная стоимость (руб.)</label>
+            {{ form.daily_price }}
+            {% if form.daily_price.errors %}
+                <p class="text-red-500 text-sm">{{ form.daily_price.errors }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <label for="id_speed" class="block text-sm font-medium">Скорость</label>
+            {{ form.speed }}
+            {% if form.speed.errors %}
+                <p class="text-red-500 text-sm">{{ form.speed.errors }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <label for="id_description" class="block text-sm font-medium">Описание</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <p class="text-red-500 text-sm">{{ form.description.errors }}</p>
+            {% endif %}
+        </div>
+        <div class="flex space-x-4">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить</button>
+            <button type="button" onclick="window.close()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Закрыть</button>
+        </div>
     </form>
+
+    <script>
+        const billingType = document.getElementById('id_billing_type');
+        const priceField = document.getElementById('price_field');
+        const dailyPriceField = document.getElementById('daily_price_field');
+
+        function toggleFields() {
+            if (billingType.value === 'monthly') {
+                priceField.style.display = 'block';
+                dailyPriceField.style.display = 'none';
+                document.getElementById('id_daily_price').value = '';
+            } else {
+                priceField.style.display = 'none';
+                dailyPriceField.style.display = 'block';
+                document.getElementById('id_price').value = '';
+            }
+        }
+
+        billingType.addEventListener('change', toggleFields);
+        toggleFields(); // Инициализация
+    </script>
 {% endblock %}
