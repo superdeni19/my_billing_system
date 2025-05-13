@@ -84,7 +84,7 @@ class Subscriber(models.Model):
             return
 
         """Берем первую активную услугу"""
-        service = active_service.firts()
+        service = active_service.first()
         tariff = service.tariff
 
         if tariff.billing_type == 'monthly':

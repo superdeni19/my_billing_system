@@ -1,5 +1,5 @@
 from datetime import timezone, timedelta
-from ipaddress import ip_address
+from django.contrib import messages
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -62,7 +62,6 @@ def subscribers(request):
     # Подготавливаем формы для каждого абонента
     subscriber_forms = {s.id: SubscriberForm(instance=s) for s in paginated_subscribers}
     device_forms = {s.id: [DeviceForm(instance=d) for d in s.devices.all()] for s in paginated_subscribers}
-    payment_forms = {s.id: [PaymentForm(instance=p) for p in s.payments.all()] for s in paginated_subscribers}
     new_device_form = DeviceForm()
     new_payment_form = PaymentForm()
 
@@ -72,7 +71,6 @@ def subscribers(request):
         'per_page': per_page,
         'subscriber_forms': subscriber_forms,
         'device_forms': device_forms,
-        'payment_forms': payment_forms,
         'new_device_form': new_device_form,
         'new_payment_form': new_payment_form,
     })
@@ -86,6 +84,7 @@ def subscriber_create(request):
         form = SubscriberForm(request.POST)
         if form.is_valid():
             form.save()
+            messages.success(request, "Пользователь сохранен")
             #return redirect('subscribers')
     else:
         form = SubscriberForm()
