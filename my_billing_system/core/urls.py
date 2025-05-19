@@ -16,6 +16,7 @@ urlpatterns = [
     path('subscriber/toggle_status/<int:subscriber_id>/', views.subscriber_toggle_status, name='subscriber_toggle_status'),
 
     path('devices/', views.devices, name='devices'),
+    path('devices/list', views.device_list, name='device_list'),
     path('devices/create/', views.device_create, name='device_create'),
     path('devices/<int:device_id>/edit/', views.device_edit, name='device_edit'),
     path('devices/<int:device_id>/delete/', views.device_delete, name='device_delete'),
@@ -35,12 +36,15 @@ urlpatterns = [
 
     path('switch_types/', views.switch_types, name='switch_types'),
 
+    path('api/services/', views.api_services,name='api_services'),
+
     path('onu/', views.onu, name='onu'),
 
     path('payments/', views.payments, name='payments'),
     path('payments/create/', views.payment_create, name='payment_create'),
     path('payments/<int:payment_id>/edit/', views.payment_edit, name='payment_edit'),
     path('payments/<int:payment_id>/delete/', views.payment_delete, name='payment_delete'),
+    path('payments/history', views.payment_history, name='payment_history'),
 
     path('reports/', views.reports, name='reports'),
     path('equipment/', views.equipment, name='equipment'),

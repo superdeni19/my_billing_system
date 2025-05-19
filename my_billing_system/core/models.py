@@ -2,7 +2,7 @@ from array import array
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 import re
@@ -29,7 +29,7 @@ class Tariff(models.Model):
         ('daily', 'Ежедневное списание')
     )
     name = models.CharField(max_length=100, unique=False)
-    price = models.FloatField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     speed = models.CharField(max_length=254, blank=False)
     description = models.TextField(blank=True)
     billing_type = models.CharField(max_length=30, choices=BILLING_TYPE_CHOICES, default='monthly')
@@ -90,8 +90,8 @@ class Subscriber(models.Model):
         if tariff.billing_type == 'monthly':
             # Месячная тарификация: считаем от billing_start
             billing_start = service.billing_start or timezone.now().date()
-            month = int(self.balance // tariff.price)
-            remaining_balance = self.balance % tariff.price
+            month = int(self.balance // int(tariff.price))
+            remaining_balance = self.balance % int(tariff.price)
             days = int(remaining_balance / (tariff.price / 30)) #деление для остатка
             self.active_until = billing_start + timedelta(days=month * 30 + days)
         else:
@@ -175,14 +175,18 @@ class Payment(models.Model):
         return f"{self.amount} от {self.date} ({self.subscriber})"
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        self.subscriber.balance += self.amount
-        active_services = self.subscriber.services.filter(is_active=True)
-        for service in active_services:
-            if not service.billing_start:
-                service.billing_start = self.date
-                service.save()
-        self.subscriber.update_active_until()
+        with transaction.atomic():
+            if not self.date:
+                self.date = timezone.now().date()
+            if not self.subscriber and self.service:
+                self.subscriber = self.service.subscriber
+            super().save(*args, **kwargs)
+            self.subscriber.balance += self.amount
+            self.subscriber.save()
+            if not self.service.billing_start:
+                self.service.billing_start = self.date
+                self.service.save()
+            self.subscriber.update_active_until()
 
 class Device(models.Model):
     subscriber = models.ForeignKey(Subscriber, on_delete=models.CASCADE, related_name='devices')

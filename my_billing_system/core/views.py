@@ -3,7 +3,7 @@ from django.contrib import messages
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import AuthenticationForm
@@ -168,12 +168,31 @@ def device_create(request):
     if request.method == 'POST':
         form = DeviceForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('subscribers')
+            device = form.save(commit=False)
+            subscriber_id = request.POST.get('subscriber')
+            try:
+                device.subscriber = Subscriber.objects.get(id=subscriber_id)
+                device.save()
+                messages.success(request, "Устройство создано")
+                return redirect('device_list', subscriber_id=subscriber_id)
+            except Subscriber.DoesNotExist:
+                messages.error(request, "Абонент не найден")
+        else:
+            messages.error(request, "Ошибка в форме")
+        return render(request, 'devices/device_list.html', {
+            'subscriber': Subscriber.objects.get(id=request.POST.get('subscriber')) if request.POST.get('subscriber') else None,
+            'devices': Device.objects.filter(subscriber_id=request.POST.get('subscriber')),
+            'device_form': form
+        })
     else:
         initial = {}
-        if request.GET.get('subscriber'):
-            initial['subscriber'] = request.GET.get('subscriber')
+        subscriber_id = request.GET.get('subscriber')
+        if subscriber_id:
+            try:
+                subscriber = Subscriber.objects.get(id=subscriber_id)
+                initial['subscriber'] = subscriber
+            except Subscriber.DoesNotExist:
+                messages.error(request, "Абонент не найден")
         form = DeviceForm(initial=initial)
     return render(request, 'devices/device_form.html', {'form': form})
 
@@ -192,6 +211,56 @@ def device_edit(request, device_id):
         form = DeviceForm(instance=device)
     return render(request, 'devices/device_form.html', {'form': form, 'device': device})
 
+@login_required
+def device_list(request):
+    if not request.user.is_authorized():
+        return redirect("login")
+    subscriber_id = request.GET.get('subscriber')
+    try:
+        subscriber = Subscriber.objects.get(id=subscriber_id)
+        devices = Device.objects.filter(subscriber=subscriber)
+        device_form = DeviceForm(initial={'subscriber': subscriber})
+    except Subscriber.DoesNotExist:
+        messages.error(request, "Абонент не найден")
+        return render(request, 'devices/device_list.html', {'subscriber': None, 'devices': [], 'device_form': DeviceForm()})
+    return render(request, 'devices/device_list.html', {
+        'subscriber': subscriber,
+        'devices': devices,
+        'device_form': device_form
+    })
+
+@login_required
+def device_edit(request, device_id):
+    if not hasattr(request.user, 'user') or not request.user.user.is_authorized():
+        return redirect("login")
+    device = get_object_or_404(Device, id=device_id)
+    if request.method == "POST":
+        form = DeviceForm(request.POST, instance=device)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Устройство обновлено")
+            return render(request, 'devices/device_form.html', {'form': form})
+    else:
+        form = DeviceForm(instance=device)
+    return render(request, 'devices/device_form.html', {'form': form})
+
+@login_required
+def device_delete(request, device_id):
+    if not hasattr(request.user, 'user') or not request.user.user.is_authorized():
+        return redirect("login")
+    device = get_object_or_404(Device, id=device_id)
+    if request.method == "POST":
+        device.delete()
+        messages.success(request, "Устройство удалено")
+        return redirect('device_list', subscriber_id=device.subscriber.id)
+    return render(request, 'devices/device_confirm_delete.html', {'device': device})
+
+
+def api_services(request):
+    subscriber_id = request.GET.get('subscriber')
+    services = Service.objects.filter(subscriber_id=subscriber_id, is_active=True)
+    data = [{'id': service.id, 'tariff': {'name': service.tariff.name}} for service in services]
+    return JsonResponse(data, safe=False)
 
 @login_required
 def device_delete(request, device_id):
@@ -552,17 +621,40 @@ def payments(request):
 def payment_create(request):
     if not request.user.is_authorized():
         return redirect('login')
-    if request.method == 'POST':
+    service_id = request.GET.get('service')
+    initial = {}
+    if service_id:
+        try:
+            service = Service.objects.get(id=service_id)
+            initial['service'] = service
+        except Service.DoesNotExist:
+            messages.error(request, "Услуга не найдена")
+    if request.method == "POST":
         form = PaymentForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('subscribers')
+            payment = form.save(commit=False)
+
+            payment.operator = request.user
+            payment.save()
+            messages.success(request, "Платёж Успешно добавлен")
+            return render(request, 'payments/payment_form.html', {'form': PaymentForm(initial=initial)})
     else:
-        initial = {}
-        if request.GET.get('subscriber'):
-            initial['subscriber'] = request.GET.get('subscriber')
         form = PaymentForm(initial=initial)
     return render(request, 'payments/payment_form.html', {'form': form})
+
+@login_required
+def payment_history(request):
+    if not request.user.is_authorized():
+        return redirect("login")
+    subscriber_id = request.GET.get('subscriber')
+    try:
+        subscriber = Subscriber.objects.get(id=subscriber_id)
+        payments = Payment.objects.filter(subscriber=subscriber).order_by('-date')
+    except Subscriber.DoesNotExist:
+        messages.error(request, "Абонент не найден")
+        return render(request, 'payments/payment_history.html', {'subscriber': None, 'payments': []})
+    return render(request, 'payments/payment_history.html', {'subscriber': subscriber, 'payments': payments})
+
 
 
 @login_required

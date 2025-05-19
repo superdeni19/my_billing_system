@@ -102,8 +102,8 @@
                     <td class="border p-2">
                         <div class="flex space-x-2">
                             <button onclick="openPopup('{% url 'subscriber_edit' subscriber.id %}', 'Редактировать абонента', 600, 800)" class="text-blue-500 hover:underline">Редактировать</button>
-                            <button onclick="openPopup('{% url 'device_list' %}?subscriber={{ subscriber.id }}', 'Устройства абонента', 600, 600)" class="text-green-500 hover:underline">Устройство</button>
-                            <button onclick="openPopup('{% url 'payment_history' %}?subscriber={{ subscriber.id }}', 'Платежи абонента', 600, 600)" class="text-purple-500 hover:underline">Платёж</button>
+                            <button onclick="openPopup('{% url 'device_create' %}?subscriber={{ subscriber.id }}', 'Добавить устройство', 600, 600)" class="text-green-500 hover:underline">Устройство</button>
+                            <button onclick="openPopup('{% url 'payment_create' %}?subscriber={{ subscriber.id }}', 'Добавить платёж', 600, 600)" class="text-purple-500 hover:underline">Платёж</button>
                             <button onclick="openPopup('{% url 'service_create' %}?subscriber={{ subscriber.id }}', 'Добавить услугу', 600, 600)" class="text-teal-500 hover:underline">Услуга</button>
                             <button onclick="openPopup('{% url 'subscriber_delete' subscriber.id %}', 'Удалить абонента', 600, 400)" class="text-red-500 hover:underline">Удалить</button>
                         </div>
@@ -114,8 +114,8 @@
                     <td colspan="14" class="border p-4 bg-gray-50">
                         <div class="flex space-x-4">
                             <button onclick="openPopup('{% url 'subscriber_edit' subscriber.id %}', 'Редактировать абонента', 600, 800)" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Редактировать абонента</button>
-                            <button onclick="openPopup('{% url 'device_list' %}?subscriber={{ subscriber.id }}', 'Устройства абонента', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Устройства</button>
-                            <button onclick="openPopup('{% url 'payment_history' %}?subscriber={{ subscriber.id }}', 'Платежи абонента', 600, 600)" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Платежи</button>
+                            <button onclick="openPopup('{% url 'device_create' %}?subscriber={{ subscriber.id }}', 'Добавить устройство', 600, 600)" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Добавить устройство</button>
+                            <button onclick="openPopup('{% url 'payment_create' %}?subscriber={{ subscriber.id }}', 'Добавить платёж', 600, 600)" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Добавить платёж</button>
                             <button onclick="openPopup('{% url 'service_create' %}?subscriber={{ subscriber.id }}', 'Добавить услугу', 600, 600)" class="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">Добавить услугу</button>
                             <button onclick="openPopup('{% url 'subscriber_delete' subscriber.id %}', 'Удалить абонента', 600, 400)" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Удалить абонента</button>
                             <form method="post" action="{% url 'subscriber_toggle_status' subscriber.id %}" class="inline">

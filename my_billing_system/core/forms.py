@@ -79,13 +79,11 @@ class ServiceForm(forms.ModelForm):
 class PaymentForm(forms.ModelForm):
     class Meta:
         model = Payment
-        fields = ['subscriber', 'amount', 'date', 'description', 'operator']
+        fields = ['subscriber', 'amount',  'description']
         widgets = {
             'subscriber': forms.Select(attrs={'class': 'border p-2 w-full'}),
             'amount': forms.NumberInput(attrs={'class': 'border p-2 w-full'}),
-            'date': forms.DateInput(attrs={'class': 'border p-2 w-full', 'type': 'date'}),
             'description': forms.Textarea(attrs={'class': 'border p-2 w-full', 'rows': 4}),
-            'operator': forms.Select(attrs={'class': 'border p-2 w-full'}),
         }
 
 class SwitchForm(forms.ModelForm):

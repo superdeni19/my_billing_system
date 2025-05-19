@@ -1,22 +1,28 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if payment %}Редактировать платёж{% else %}Добавить платёж{% endif %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-4">
+{% extends 'base.html' %}
+{% block title %}
+    {% if form.instance.id %}Редактировать платёж{% else %}Добавить платёж{% endif %}
+{% endblock %}
+{% block content %}
+    <h1 class="text-2xl font-bold mb-4">
+        {% if form.instance.id %}Редактировать платёж{% else %}Добавить платёж{% endif %}
+    </h1>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="bg-{{ message.tags }}-100 border-l-4 border-{{ message.tags }}-500 text-{{ message.tags }}-700 p-4 mb-4" role="alert">
+                {{ message }}
+                {% if message.tags == "success" %}
+                    <script>
+                        window.opener.location.reload();
+                        setTimeout(() => window.close(), 1000);
+                    </script>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% endif %}
     <form method="post" class="space-y-4">
         {% csrf_token %}
-        {% if request.GET.subscriber %}
-            <input type="hidden" name="subscriber" value="{{ request.GET.subscriber }}">
-        {% endif %}
         {{ form.as_p }}
-        <div class="flex space-x-2">
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить</button>
-            <button type="button" onclick="window.close()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Закрыть</button>
-        </div>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Сохранить</button>
+        <a href="{% url 'payment_history' %}?subscriber={{ form.initial.subscriber.id|default:form.instance.subscriber.id }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Отмена</a>
     </form>
-</body>
-</html>
+{% endblock %}
